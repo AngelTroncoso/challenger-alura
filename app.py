@@ -133,6 +133,202 @@ def obtener_nivel_cobertura(porcentaje: int) -> dict:
     return NIVELES_COBERTURA[-1]
 
 
+def render_header_banner():
+    """Renderiza el banner corporativo superior con branding PRO."""
+    st.markdown(
+        f"""
+        <div style="
+            background: linear-gradient(135deg, #0F1420 0%, #1A1F35 50%, #0F1420 100%);
+            border: 1px solid #2A3050;
+            border-radius: 16px;
+            padding: 22px 32px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+        ">
+            <div style="display: flex; align-items: center; gap: 18px;">
+                <div style="
+                    background: linear-gradient(135deg, #00C9B7 0%, #0099FF 100%);
+                    width: 44px; height: 44px;
+                    border-radius: 12px;
+                    display: flex; align-items: center; justify-content: center;
+                    font-size: 22px;
+                    box-shadow: 0 4px 12px rgba(0, 153, 255, 0.3);
+                ">🏦</div>
+                <div>
+                    <div style="
+                        font-size: 0.7em;
+                        font-weight: 700;
+                        letter-spacing: 3px;
+                        color: #00C9B7;
+                        text-transform: uppercase;
+                        margin-bottom: 2px;
+                    ">PRO — Enterprise Credit Evaluation</div>
+                    <div style="
+                        font-size: 0.85em;
+                        color: #8890B0;
+                        font-weight: 300;
+                    ">Chile · CMF Compliance Framework · v2.0</div>
+                </div>
+            </div>
+            <div style="
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                background: rgba(0, 153, 255, 0.08);
+                padding: 8px 18px;
+                border-radius: 30px;
+                border: 1px solid rgba(0, 153, 255, 0.15);
+            ">
+                <span style="color: #00C9B7; font-size: 1.1em;">🔒</span>
+                <span style="color: #C0C8E0; font-size: 0.78em; font-weight: 400;">
+                    Secure Multi-Agent Risk Engine
+                </span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_producto_info_card(producto: str):
+    """Renderiza tarjeta visual dinámica con SVG inline y resumen de parámetros CMF."""
+    import streamlit as st
+
+    if producto == "factoring":
+        svg_ilustracion = """
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160" width="240" height="160">
+            <defs>
+                <linearGradient id="factGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#00C9B7;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#0099FF;stop-opacity:1" />
+                </linearGradient>
+                <linearGradient id="factGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#1A2A40;stop-opacity:0.9" />
+                    <stop offset="100%" style="stop-color:#0F1420;stop-opacity:0.9" />
+                </linearGradient>
+            </defs>
+            <rect x="10" y="20" width="60" height="40" rx="4" fill="url(#factGrad2)" stroke="#2A4060" stroke-width="1.2"/>
+            <rect x="20" y="28" width="18" height="12" rx="2" fill="none" stroke="#00C9B7" stroke-width="1.2"/>
+            <rect x="42" y="28" width="18" height="12" rx="2" fill="none" stroke="#00C9B7" stroke-width="1.2"/>
+            <line x1="12" y1="50" x2="68" y2="50" stroke="#2A4060" stroke-width="1"/>
+            <line x1="25" y1="50" x2="25" y2="54" stroke="#0099FF" stroke-width="1.5"/>
+            <line x1="40" y1="50" x2="40" y2="54" stroke="#0099FF" stroke-width="1.5"/>
+            <line x1="55" y1="50" x2="55" y2="54" stroke="#0099FF" stroke-width="1.5"/>
+            <!-- Flecha flujo de caja -->
+            <path d="M85 40 L110 40 L110 30 L130 45 L110 60 L110 50 L85 50 Z" fill="#00C9B7" opacity="0.7"/>
+            <circle cx="145" cy="45" r="6" fill="url(#factGrad1)" opacity="0.6"/>
+            <!-- Documentos / billetes -->
+            <rect x="155" y="30" width="50" height="38" rx="3" fill="#1A2A40" stroke="#2A4060" stroke-width="1"/>
+            <rect x="160" y="36" width="30" height="4" rx="2" fill="#0099FF" opacity="0.5"/>
+            <rect x="160" y="44" width="24" height="4" rx="2" fill="#0099FF" opacity="0.3"/>
+            <rect x="160" y="52" width="26" height="4" rx="2" fill="#0099FF" opacity="0.4"/>
+            <!-- Gráfico ascendente -->
+            <polyline points="10,110 30,100 50,105 70,90 90,92 110,75 130,78 150,65 170,68 190,55 210,50 230,45"
+                      fill="none" stroke="#00C9B7" stroke-width="2" opacity="0.6"/>
+            <polyline points="10,130 30,125 50,128 70,118 90,120 110,108 130,110 150,100 170,102 190,92 210,88 230,82"
+                      fill="none" stroke="#0099FF" stroke-width="1.5" opacity="0.4"/>
+            <circle cx="230" cy="45" r="3" fill="#00C9B7"/>
+            <circle cx="230" cy="82" r="2.5" fill="#0099FF"/>
+            <text x="120" y="148" text-anchor="middle" fill="#00C9B7" font-size="8" font-family="monospace">LIQUIDEZ · FLUJO DE CAJA</text>
+        </svg>
+        """
+        parametros_cmf = """
+        <div style="margin-top: 10px; font-size: 0.85em; line-height: 1.6; color: #C0C8E0;">
+            <div style="color: #00C9B7; font-weight: 600; margin-bottom: 6px;">📌 Parámetros CMF priorizados para <strong>Factoring</strong>:</div>
+            <ul style="margin: 0; padding-left: 18px;">
+                <li>🔹 <strong>Rotación de Cartera</strong> — días promedio de cobro</li>
+                <li>🔹 <strong>Concentración de Deudores</strong> — riesgo de dependencia</li>
+                <li>🔹 <strong>Liquidez Corriente</strong> — capacidad de pago inmediata</li>
+                <li>🔹 <strong>Endeudamiento Total</strong> — apalancamiento financiero</li>
+                <li>🔹 <strong>Calidad de Documentos Comerciales</strong> — antigüedad y tipo</li>
+            </ul>
+            <div style="margin-top: 8px; padding: 6px 10px; background: rgba(0,201,183,0.08); border-radius: 6px; border-left: 3px solid #00C9B7;">
+                ⚡ Evaluación centrada en liquidez, morosidad histórica y calidad de la cartera cedible.
+            </div>
+        </div>
+        """
+    else:  # leasing
+        svg_ilustracion = """
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160" width="240" height="160">
+            <defs>
+                <linearGradient id="leaseGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#FF8C42;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#FF5E62;stop-opacity:1" />
+                </linearGradient>
+                <linearGradient id="leaseGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#1A2A40;stop-opacity:0.9" />
+                    <stop offset="100%" style="stop-color:#0F1420;stop-opacity:0.9" />
+                </linearGradient>
+            </defs>
+            <!-- Camión / vehículo industrial -->
+            <rect x="20" y="60" width="80" height="45" rx="6" fill="#1A2A40" stroke="#3A5070" stroke-width="1.2"/>
+            <rect x="40" y="70" width="40" height="22" rx="3" fill="none" stroke="#3A5070" stroke-width="1"/>
+            <line x1="40" y1="80" x2="80" y2="80" stroke="#3A5070" stroke-width="0.8"/>
+            <line x1="60" y1="70" x2="60" y2="92" stroke="#3A5070" stroke-width="0.8"/>
+            <!-- Ruedas -->
+            <circle cx="40" cy="110" r="10" fill="#0F1420" stroke="#3A5070" stroke-width="1.5"/>
+            <circle cx="40" cy="110" r="4" fill="#FF8C42" opacity="0.6"/>
+            <circle cx="80" cy="110" r="10" fill="#0F1420" stroke="#3A5070" stroke-width="1.5"/>
+            <circle cx="80" cy="110" r="4" fill="#FF8C42" opacity="0.6"/>
+            <!-- Maquinaria / engranaje -->
+            <circle cx="145" cy="60" r="20" fill="none" stroke="#FF8C42" stroke-width="3" opacity="0.5"/>
+            <circle cx="145" cy="60" r="8" fill="#FF5E62" opacity="0.4"/>
+            <line x1="145" y1="40" x2="145" y2="80" stroke="#FF8C42" stroke-width="1.5" opacity="0.3"/>
+            <line x1="125" y1="60" x2="165" y2="60" stroke="#FF8C42" stroke-width="1.5" opacity="0.3"/>
+            <!-- Edificio / activo fijo -->
+            <rect x="120" y="90" width="50" height="50" rx="2" fill="#1A2A40" stroke="#3A5070" stroke-width="1"/>
+            <rect x="130" y="98" width="10" height="14" rx="1" fill="#FF8C42" opacity="0.3"/>
+            <rect x="150" y="98" width="10" height="14" rx="1" fill="#FF8C42" opacity="0.3"/>
+            <rect x="130" y="118" width="10" height="14" rx="1" fill="#FF8C42" opacity="0.3"/>
+            <rect x="150" y="118" width="10" height="14" rx="1" fill="#FF8C42" opacity="0.3"/>
+            <text x="120" y="148" text-anchor="middle" fill="#FF8C42" font-size="8" font-family="monospace">ACTIVOS FIJOS · MAQUINARIA · VEHÍCULOS</text>
+        </svg>
+        """
+        parametros_cmf = """
+        <div style="margin-top: 10px; font-size: 0.85em; line-height: 1.6; color: #C0C8E0;">
+            <div style="color: #FF8C42; font-weight: 600; margin-bottom: 6px;">📌 Parámetros CMF priorizados para <strong>Leasing</strong>:</div>
+            <ul style="margin: 0; padding-left: 18px;">
+                <li>🔸 <strong>Cobertura EBITDA</strong> — capacidad de pago del arriendo</li>
+                <li>🔸 <strong>Cobertura Servicio Deuda (FCF)</strong> — flujo libre disponible</li>
+                <li>🔸 <strong>Endeudamiento Máximo</strong> — nivel de apalancamiento</li>
+                <li>🔸 <strong>Margen EBITDA</strong> — rentabilidad operacional</li>
+                <li>🔸 <strong>Vida Útil del Activo</strong> — relación plazo/garantía</li>
+            </ul>
+            <div style="margin-top: 8px; padding: 6px 10px; background: rgba(255,140,66,0.08); border-radius: 6px; border-left: 3px solid #FF8C42;">
+                ⚡ Evaluación centrada en generación de flujo, solvencia patrimonial y capacidad de pago recurrente.
+            </div>
+        </div>
+        """
+
+    # Tarjeta combinada
+    st.markdown(
+        f"""
+        <div style="
+            background: linear-gradient(135deg, #111827 0%, #1A1F35 100%);
+            border: 1px solid #2A3050;
+            border-radius: 16px;
+            padding: 20px;
+            margin: 16px 0;
+            transition: all 0.2s;
+        ">
+            <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start;">
+                <div style="flex-shrink: 0;">
+                    {svg_ilustracion}
+                </div>
+                <div style="flex: 1; min-width: 180px;">
+                    {parametros_cmf}
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def render_dark_mode_css():
     """Renderiza CSS personalizado para modo oscuro."""
     st.markdown(
@@ -142,6 +338,35 @@ def render_dark_mode_css():
         .stApp {
             background-color: #0E1117;
             color: #E0E0E0;
+        }
+
+        /* ── Header superior transparente / oscuro ── */
+        header[data-testid="stHeader"] {
+            background-color: #0e1117 !important;
+            border-bottom: 1px solid #1E2230;
+        }
+
+        /* ── Zona de carga (file uploader) oscura ── */
+        [data-testid="stFileUploader"] {
+            background-color: #161b26;
+            border: 1px solid #2D3142;
+            border-radius: 12px;
+            padding: 8px;
+            transition: border-color 0.2s;
+        }
+        [data-testid="stFileUploader"]:hover {
+            border-color: #4A4F6A;
+        }
+        [data-testid="stFileUploader"] section {
+            background-color: #161b26;
+        }
+        [data-testid="stFileUploader"] button {
+            background-color: #2D3142;
+            color: #E0E0E0;
+            border: 1px solid #4A4F6A;
+        }
+        [data-testid="stFileUploader"] button:hover {
+            background-color: #3D4260;
         }
 
         /* ── Tarjetas / contenedores ── */
@@ -334,6 +559,173 @@ def render_dark_mode_css():
             border-color: #2D3142;
         }
 
+        /* ── HEADER: barra superior transparente ── */
+        header[data-testid="stHeader"] {
+            background-color: #0e1117 !important;
+            border-bottom: 1px solid #1E2235;
+        }
+        header[data-testid="stHeader"] * {
+            color: #8A8FA8 !important;
+        }
+
+        /* ── FILE UPLOADER: fondo oscuro alineado con sidebar ── */
+        section[data-testid="stFileUploader"] {
+            background-color: #161b26;
+            border: 1px dashed #2D3142;
+            border-radius: 12px;
+            padding: 8px;
+            transition: border-color 0.2s;
+        }
+        section[data-testid="stFileUploader"]:hover {
+            border-color: #4A4F6A;
+        }
+        section[data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] p {
+            color: #C0C4D0 !important;
+        }
+        section[data-testid="stFileUploader"] button {
+            background-color: #1A1D27 !important;
+            border: 1px solid #2D3142 !important;
+            color: #E0E0E0 !important;
+        }
+        section[data-testid="stFileUploader"] button:hover {
+            border-color: #4A4F6A !important;
+        }
+        .stFileUploaderFile {
+            background-color: #1A1D27 !important;
+            color: #E0E0E0 !important;
+            border: 1px solid #2D3142 !important;
+            border-radius: 8px !important;
+        }
+        .stFileUploaderFile * {
+            color: #E0E0E0 !important;
+        }
+
+        /* ── Banner de cabecera corporativo ── */
+        .corp-banner {
+            background: linear-gradient(135deg, #0F1320 0%, #1A1F3A 50%, #0F1923 100%);
+            border: 1px solid #2A3050;
+            border-radius: 16px;
+            padding: 20px 28px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+        .corp-banner::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -20%;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .corp-banner::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            right: -10%;
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, rgba(0, 204, 102, 0.06) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .corp-banner .banner-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(0, 204, 102, 0.1));
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            color: #60A5FA;
+            text-transform: uppercase;
+        }
+        .corp-banner .banner-tag .dot {
+            width: 6px;
+            height: 6px;
+            background: #00CC66;
+            border-radius: 50%;
+            animation: pulse-dot 2s infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+        .corp-banner .banner-title {
+            font-size: 1.05em;
+            font-weight: 600;
+            color: #F0F4FF;
+            position: relative;
+            z-index: 1;
+        }
+        .corp-banner .banner-sub {
+            font-size: 0.8em;
+            color: #8A8FA8;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ── Tarjetas de producto dinámicas ── */
+        .product-card {
+            background: linear-gradient(135deg, #1A1D27 0%, #1F2340 100%);
+            border: 1px solid #2D3142;
+            border-radius: 16px;
+            padding: 20px;
+            margin: 16px 0;
+            transition: all 0.3s ease;
+        }
+        .product-card:hover {
+            border-color: #4A4F6A;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+        }
+        .product-card .product-visual {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        .product-card .product-visual svg {
+            max-width: 100%;
+            height: auto;
+        }
+        .product-card .product-params {
+            background: rgba(14, 17, 23, 0.6);
+            border: 1px solid #2D3142;
+            border-radius: 10px;
+            padding: 14px;
+            margin-top: 12px;
+        }
+        .product-card .product-params h4 {
+            color: #E0E0E0;
+            font-size: 0.85em;
+            margin: 0 0 8px 0;
+        }
+        .product-card .product-params ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .product-card .product-params ul li {
+            padding: 4px 0;
+            font-size: 0.82em;
+            color: #A0A4B0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .product-card .product-params ul li::before {
+            content: '▸';
+            color: #60A5FA;
+            font-weight: bold;
+        }
+
         /* ── Ajustes para Streamlit nativo en dark ── */
         .stTextInput, .stSelectbox, .stNumberInput {
             background-color: #1A1D27;
@@ -500,6 +892,9 @@ with st.sidebar:
         help="Selecciona el tipo de producto a evaluar",
     )
 
+    # ── Tarjeta visual dinámica del producto seleccionado ──
+    render_producto_info_card(producto_seleccionado)
+
     st.markdown("### Parámetros de Evaluación")
     antiguedad_min = st.number_input(
         "Antigüedad mínima (meses)",
@@ -547,10 +942,39 @@ with st.sidebar:
 # ──────────────────────────────────────────────────────────────────────
 #  CABECERA PRINCIPAL
 # ──────────────────────────────────────────────────────────────────────
-st.title("📊 Sistema de Evaluación Crediticia")
+
+# Banner corporativo
+st.markdown(
+    f"""
+    <div class="corp-banner">
+        <div>
+            <div class="banner-tag">
+                <span class="dot"></span>
+                PRO — ENTERPRISE CREDIT EVALUATION
+            </div>
+            <div class="banner-title" style="margin-top: 8px;">
+                📊 Sistema de Evaluación Crediticia
+            </div>
+            <div class="banner-sub">
+                Multiagente · Chile · CMF Compliance
+            </div>
+        </div>
+        <div style="text-align: right; position: relative; z-index: 1;">
+            <div style="font-size: 2em; font-weight: 700; color: #60A5FA; line-height: 1;">
+                {producto_seleccionado.upper()}
+            </div>
+            <div style="font-size: 0.75em; color: #8A8FA8; letter-spacing: 2px; text-transform: uppercase;">
+                Producto Activo
+            </div>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
 st.markdown(
     """
-    Sistema multiagente para evaluación de **factoring** y **leasing** en Chile.
+    Sistema multiagente para evaluación de **factoring** y **leasing** en Chile.\n
     Procesa carpetas tributarias y financieras para generar dictámenes de riesgo
     basados en políticas CMF y parámetros internos configurables.
     """
