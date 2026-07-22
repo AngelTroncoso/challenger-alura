@@ -1,0 +1,1 @@
+"""Estado compartido del grafo LangGraph."""

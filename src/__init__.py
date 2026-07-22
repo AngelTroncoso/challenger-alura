@@ -1,0 +1,1 @@
+"""Sistema multiagente de evaluación crediticia para factoring y leasing en Chile."""

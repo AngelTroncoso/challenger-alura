@@ -1,0 +1,1 @@
+"""Modelos Pydantic para el dominio crediticio chileno."""

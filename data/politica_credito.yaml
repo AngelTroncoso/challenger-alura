@@ -1,0 +1,214 @@
+# =============================================================================
+# politica_credito.yaml
+# Política crediticia parametrizada y mapeada a la Base de Conocimiento (RAG)
+# =============================================================================
+
+version: "1.0.0"
+ultima_actualizacion: "2026-03-29"
+
+# -----------------------------------------------------------------------------
+# 1. MAPEO DE ARCHIVOS DE LA BASE DE CONOCIMIENTO (data/knowledge_base/)
+# -----------------------------------------------------------------------------
+knowledge_base_files:
+  ley_renta: "data/knowledge_base/DL-824_31-DIC-1974.pdf"
+  ley_iva: "data/knowledge_base/DL-825_31-DIC-1974.pdf"
+  guias_f22: 
+    - "data/knowledge_base/f_22.pdf"
+    - "data/knowledge_base/f_22.1.pdf"
+  guias_f29: "data/knowledge_base/f29.pdf"
+  normativa_complementaria: "data/knowledge_base/LEY-2517_03-AGO-1911.pdf"
+
+# -----------------------------------------------------------------------------
+# 2. CAMPOS GENERALES DEL SOLICITANTE
+# -----------------------------------------------------------------------------
+solicitante:
+  campos_obligatorios:
+    - rut
+    - razon_social_o_nombre
+    - fecha_inicio_actividades
+    - actividad_economica_giro
+    - categoria_tributaria
+    - domicilio_comuna_region
+    - representante_legal_rut
+  fuente: "Carpeta Tributaria Electrónica para Solicitar Créditos (SII)"
+
+# -----------------------------------------------------------------------------
+# 3. CAPACIDAD DE PAGO Y RENTABILIDAD (F22 / DL 824)
+# -----------------------------------------------------------------------------
+capacidad_pago:
+  fuente_dato: "Formulario 22 (F22)"
+  archivo_referencia: "data/knowledge_base/DL-824_31-DIC-1974.pdf"
+  guias_asociadas:
+    - "data/knowledge_base/f_22.pdf"
+    - "data/knowledge_base/f_22.1.pdf"
+  regla:
+    ratio_cuota_sobre_renta_liquida_mensual:
+      descripcion: "Proporción máxima de la cuota mensual de leasing sobre el promedio mensual de RLI"
+      umbral_maximo_pct: 30
+    antiguedad_minima_actividad_meses:
+      descripcion: "Meses desde inicio de actividades en el SII"
+      umbral_minimo: 12
+    perdida_tributaria_ejercicio_anterior:
+      descripcion: "Si RLI es negativa (art. 31 N°3 LIR), requiere revisión manual"
+      accion: "revision_manual"
+
+# -----------------------------------------------------------------------------
+# 4. CONSISTENCIA DE IVA Y VENTAS (F29 / DL 825)
+# -----------------------------------------------------------------------------
+consistencia_iva:
+  fuente_dato: "Formulario 29 (F29) - últimos 12 a 24 períodos"
+  archivo_referencia: "data/knowledge_base/DL-825_31-DIC-1974.pdf"
+  guias_asociadas: "data/knowledge_base/f29.pdf"
+  reglas:
+    variacion_ventas_mensuales:
+      descripcion: "Variación porcentual máxima aceptable en ventas declaradas (Cód. 538)"
+      umbral_maximo_variacion_pct: 40
+    declaraciones_sin_movimiento_consecutivas:
+      descripcion: "Cantidad máxima de F29 sin movimiento consecutivos permitidos"
+      umbral_maximo: 2
+    remanente_credito_fiscal_persistente_meses:
+      descripcion: "Meses consecutivos con remanente de crédito fiscal (Cód. 504)"
+      umbral_alerta: 6
+
+# -----------------------------------------------------------------------------
+# 5. COMPORTAMIENTO DE PAGO
+# -----------------------------------------------------------------------------
+comportamiento_pago:
+  campos:
+    - protestos_vigentes
+    - morosidades_vigentes_sistema_financiero
+    - antiguedad_ultima_morosidad_meses
+  reglas:
+    protestos_vigentes_maximo:
+      umbral_maximo: 0
+    morosidad_vigente_monto_maximo_uf:
+      umbral_maximo: 0
+    dias_desde_ultima_morosidad_minimo:
+      descripcion: "Meses limpios exigidos desde la última morosidad registrada"
+      umbral_minimo_meses: 12
+
+# -----------------------------------------------------------------------------
+# 6. ESPECÍFICO LEASING
+# -----------------------------------------------------------------------------
+leasing:
+  campos:
+    - tipo_bien
+    - valor_bien_uf
+    - plazo_contrato_meses
+    - porcentaje_pie_ofrecido
+  reglas:
+    pie_minimo_pct:
+      descripcion: "Porcentaje mínimo de pie exigido sobre el valor del bien"
+      umbral_minimo_pct: 10
+    plazo_maximo_meses:
+      mobiliario: 60
+      inmobiliario: 180
+    relacionados_restriccion:
+      descripcion: "Restricción de arriendo con partes relacionadas"
+      accion: "revision_manual"
+
+# -----------------------------------------------------------------------------
+# 7. ESPECÍFICO FACTORING
+# -----------------------------------------------------------------------------
+factoring:
+  campos:
+    - factura_folio
+    - factura_monto
+    - factura_fecha_emision
+    - factura_fecha_recepcion_sii
+    - acuse_recibo_tacito_o_expreso
+    - deudor_pagador_rut
+    - deudor_pagador_razon_social
+    - cesiones_previas_registradas
+  reglas:
+    requisitos_merito_ejecutivo:
+      descripcion: "Checklist Ley 19.983 para mérito ejecutivo de factura"
+      condiciones:
+        - "no_reclamada_dentro_de_8_dias_recepcion_sii"
+        - "acuse_recibo_mercaderia_o_servicio_registrado"
+        - "obligacion_actualmente_exigible"
+        - "pago_no_sujeto_a_condiciones_pendientes"
+        - "sin_cesiones_previas_vigentes"
+      accion_si_incumple: "rechazar"
+    concentracion_maxima_por_deudor_pct:
+      descripcion: "Porcentaje máximo de facturas a ceder a un mismo deudor"
+      umbral_maximo_pct: 30
+    antiguedad_maxima_factura_dias:
+      descripcion: "Días máximos desde la emisión de la factura"
+      umbral_maximo: 90
+    tipo_factoring:
+      opciones: ["con_recurso", "sin_recurso"]
+
+# -----------------------------------------------------------------------------
+# 8. UMBRALES DE RATIOS FINANCIEROS (antes hardcodeados en Python)
+# -----------------------------------------------------------------------------
+ratios_financieros:
+  razon_deuda_patrimonio_maximo:
+    descripcion: "Razón máxima de pasivo total sobre patrimonio"
+    umbral_maximo: 3.0
+  rotacion_cartera_minima:
+    descripcion: "Rotación de cartera mínima para factoring (ventas / cuentas por cobrar)"
+    umbral_minimo: 2.0
+  margen_ebitda:
+    descripcion: "Indicador de rentabilidad operacional (EBITDA / Ventas)"
+    umbral_minimo_pct:
+      valor: 5
+      nota: "Equivale a 0.05 en fracción"
+    umbral_bonificacion_pct:
+      valor: 20
+      nota: "Si margen >= 20% se otorga bonificación"
+  roi_minimo:
+    descripcion: "Retorno sobre activos (Resultado neto / Activo total)"
+    umbral_minimo: 0.0
+
+# -----------------------------------------------------------------------------
+# 9. PUNTAJE Y PONDERACIONES DE EVALUACIÓN (scoring)
+# -----------------------------------------------------------------------------
+scoring:
+  puntaje_base_neutral: 50.0
+  penalizaciones:
+    antiguedad_insuficiente: 10
+    liquidez_baja: 15
+    endeudamiento_alto: 15
+    deuda_patrimonio_alta: 10
+    cobertura_ebitda_insuficiente: 20
+    rotacion_cartera_baja: 10
+    protestos: 20
+    morosidad_no_permitida: 15
+    morosidad_dias_excedidos: 10
+    morosidades_previsionales: 20
+    margen_ebitda_bajo: 10
+    roi_negativo: 10
+  bonificaciones:
+    liquidez_solida: -5
+    endeudamiento_bajo: -5
+    cobertura_ebitda_solida: -5
+    margen_ebitda_alto: -5
+  umbrales_decision:
+    aprobado: 40
+    aprobado_con_condiciones:
+      max_incumplimientos: 2
+      puntaje_maximo: 60
+    requiere_revision_manual:
+      puntaje_minimo: 60
+      puntaje_maximo: 80
+    rechazado: 80
+
+# -----------------------------------------------------------------------------
+# 10. RESULTADO Y NIVELES DE DECISIÓN
+# -----------------------------------------------------------------------------
+decision:
+  niveles:
+    - nombre: "aprobado"
+      descripcion: "Cumple todos los umbrales sin alertas"
+    - nombre: "revision_manual"
+      descripcion: "Cumple umbrales cuantitativos pero activa banderas cualitativas"
+      requiere: "analista_humano"
+    - nombre: "rechazado"
+      descripcion: "Incumple uno o más umbrales duros"
+  campos_salida_obligatorios:
+    - nivel_decision
+    - score_numerico
+    - variables_criticas_evaluadas
+    - justificacion_texto_libre
+    - referencias_normativas_aplicadas
