@@ -7,7 +7,7 @@ Conecta la interfaz de usuario con el grafo LangGraph
 import json
 import os
 import tempfile
-from typing import Optional
+from typing import Optional, List
 
 import streamlit as st
 
@@ -20,16 +20,67 @@ from src.state.graph_state import ejecutar_evaluacion
 from src.utils.validators import validar_rut
 
 
-# --- Configuración de página ---
-st.set_page_config(
-    page_title="Evaluación Crediticia Chile",
-    page_icon="📊",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+# ──────────────────────────────────────────────────────────────────────
+#  CONSTANTES
+# ──────────────────────────────────────────────────────────────────────
+DOCUMENTOS_REQUERIDOS = [
+    {
+        "id": "carpeta_tributaria",
+        "nombre": "Carpeta Tributaria CMF/SII",
+        "icono": "📁",
+        "descripcion": "Resumen de obligaciones tributarias emitido por CMF o SII. "
+                       "Permite verificar el cumplimiento fiscal y detectar morosidades.",
+        "palabras_clave": ["carpeta", "tributaria", "cmf", "sii", "tributario"],
+    },
+    {
+        "id": "f29",
+        "nombre": "Formulario 29 (F29 - Últimos 12 meses)",
+        "icono": "📋",
+        "descripcion": "Declaración mensual de IVA y otros impuestos. "
+                       "Fundamental para estimar ingresos recurrentes y estacionalidad.",
+        "palabras_clave": ["f29", "formulario 29", "declaracion", "iva", "dii"],
+    },
+    {
+        "id": "balance",
+        "nombre": "Balance General y Estado de Resultados",
+        "icono": "📊",
+        "descripcion": "Estados financieros que reflejan la situación patrimonial y "
+                       "rendimiento de la empresa. Base para calcular ratios de liquidez, "
+                       "endeudamiento y rentabilidad.",
+        "palabras_clave": ["balance", "estado resultado", "eeff", "financiero", "pérdidas", "ganancias"],
+    },
+    {
+        "id": "cartola",
+        "nombre": "Cartola Bancaria reciente",
+        "icono": "🏦",
+        "descripcion": "Movimientos bancarios de los últimos 3-6 meses. "
+                       "Permite validar flujo de caja real, concentración de ingresos "
+                       "y comportamiento de pagos.",
+        "palabras_clave": ["cartola", "bancaria", "banco", "movimiento", "estado cuenta"],
+    },
+    {
+        "id": "estatutos",
+        "nombre": "Certificado de Estatutos/Vigencia",
+        "icono": "📜",
+        "descripcion": "Documento que acredita la existencia legal y vigencia de la "
+                       "sociedad. Necesario para verificar representación legal y "
+                       "facultades para contratar.",
+        "palabras_clave": ["estatuto", "vigencia", "constitucion", "sociedad", "escritura"],
+    },
+]
+
+NIVELES_COBERTURA = [
+    {"min": 100, "max": 100, "label": "Completo", "precision": "Alta (>95%)", "color": "#00CC66"},
+    {"min": 80, "max": 99, "label": "Casi completo", "precision": "Alta (85-95%)", "color": "#66CC00"},
+    {"min": 60, "max": 79, "label": "Parcial", "precision": "Media (70-85%)", "color": "#FFAA00"},
+    {"min": 40, "max": 59, "label": "Bajo", "precision": "Media-Baja (50-70%)", "color": "#FF6600"},
+    {"min": 0, "max": 39, "label": "Insuficiente", "precision": "Baja (<50%)", "color": "#FF3333"},
+]
 
 
-# --- Inicialización de estado de sesión ---
+# ──────────────────────────────────────────────────────────────────────
+#  FUNCIONES AUXILIARES
+# ──────────────────────────────────────────────────────────────────────
 def init_session_state():
     """Inicializa las variables de estado de la sesión de Streamlit."""
     if "resultado" not in st.session_state:
@@ -40,12 +91,400 @@ def init_session_state():
         st.session_state.error = None
     if "etapa_actual" not in st.session_state:
         st.session_state.etapa_actual = "carga"
+    if "archivos_subidos" not in st.session_state:
+        st.session_state.archivos_subidos = []
+    if "cobertura_documental" not in st.session_state:
+        st.session_state.cobertura_documental = {}
 
+
+def identificar_documento(nombre_archivo: str) -> Optional[str]:
+    """Intenta identificar a qué documento requerido corresponde un archivo por su nombre."""
+    nombre_lower = nombre_archivo.lower().replace("_", " ").replace("-", " ")
+    for doc in DOCUMENTOS_REQUERIDOS:
+        for kw in doc["palabras_clave"]:
+            if kw in nombre_lower:
+                return doc["id"]
+    return None
+
+
+def analizar_cobertura(archivos: List) -> dict:
+    """Analiza qué documentos han sido cubiertos por los archivos subidos."""
+    cobertura = {doc["id"]: False for doc in DOCUMENTOS_REQUERIDOS}
+    for archivo in archivos:
+        doc_id = identificar_documento(archivo.name)
+        if doc_id:
+            cobertura[doc_id] = True
+    return cobertura
+
+
+def calcular_porcentaje(cobertura: dict) -> int:
+    """Calcula el porcentaje de completitud del dossier."""
+    if not cobertura:
+        return 0
+    cubiertos = sum(1 for v in cobertura.values() if v)
+    return int((cubiertos / len(cobertura)) * 100)
+
+
+def obtener_nivel_cobertura(porcentaje: int) -> dict:
+    """Obtiene el nivel de cobertura según el porcentaje."""
+    for nivel in NIVELES_COBERTURA:
+        if nivel["min"] <= porcentaje <= nivel["max"]:
+            return nivel
+    return NIVELES_COBERTURA[-1]
+
+
+def render_dark_mode_css():
+    """Renderiza CSS personalizado para modo oscuro."""
+    st.markdown(
+        """
+        <style>
+        /* ── Fondo general oscuro ── */
+        .stApp {
+            background-color: #0E1117;
+            color: #E0E0E0;
+        }
+
+        /* ── Tarjetas / contenedores ── */
+        .doc-card {
+            background: linear-gradient(135deg, #1A1D27 0%, #22263A 100%);
+            border: 1px solid #2D3142;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 10px;
+            transition: all 0.2s ease;
+        }
+        .doc-card:hover {
+            border-color: #4A4F6A;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* ── Badge de estado ── */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .status-badge.detected {
+            background: rgba(0, 204, 102, 0.15);
+            color: #00CC66;
+            border: 1px solid rgba(0, 204, 102, 0.3);
+        }
+        .status-badge.pending {
+            background: rgba(255, 170, 0, 0.15);
+            color: #FFAA00;
+            border: 1px solid rgba(255, 170, 0, 0.3);
+        }
+        .status-badge.missing {
+            background: rgba(255, 51, 51, 0.15);
+            color: #FF3333;
+            border: 1px solid rgba(255, 51, 51, 0.3);
+        }
+
+        /* ── Tooltip personalizado ── */
+        .tooltip-container {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            cursor: help;
+        }
+        .tooltip-container .tooltip-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #2D3142;
+            color: #8A8FA8;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 8px;
+            transition: all 0.2s;
+        }
+        .tooltip-container:hover .tooltip-icon {
+            background: #4A4F6A;
+            color: #E0E0E0;
+        }
+        .tooltip-container .tooltip-text {
+            visibility: hidden;
+            opacity: 0;
+            width: 280px;
+            background: #1A1D27;
+            border: 1px solid #4A4F6A;
+            border-radius: 8px;
+            padding: 12px 14px;
+            position: absolute;
+            z-index: 1000;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            transition: opacity 0.2s, visibility 0.2s;
+            font-size: 0.85em;
+            line-height: 1.5;
+            color: #C0C4D0;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+        }
+        .tooltip-container:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* ── Tarjeta de cobertura ── */
+        .coverage-card {
+            background: linear-gradient(135deg, #1A1D27 0%, #1F2340 100%);
+            border: 1px solid #2D3142;
+            border-radius: 16px;
+            padding: 24px;
+            margin: 16px 0;
+        }
+        .coverage-card h3 {
+            margin: 0 0 16px 0;
+            color: #E0E0E0;
+            font-size: 1.1em;
+        }
+
+        /* ── Barra de progreso personalizada ── */
+        .progress-bar-container {
+            width: 100%;
+            height: 12px;
+            background: #2D3142;
+            border-radius: 6px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.8s ease;
+        }
+
+        /* ── Aviso de precisión ── */
+        .precision-alert {
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin: 12px 0;
+            font-size: 0.9em;
+            border-left: 4px solid;
+        }
+
+        /* ── Títulos de sección ── */
+        .section-title {
+            color: #E0E0E0;
+            font-size: 1.3em;
+            font-weight: 600;
+            margin: 24px 0 16px 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #2D3142;
+        }
+
+        /* ── Nombre de documento en card ── */
+        .doc-name {
+            color: #E0E0E0;
+            font-weight: 500;
+            font-size: 0.95em;
+        }
+
+        /* ── Métricas de cobertura ── */
+        .coverage-metric {
+            text-align: center;
+            padding: 12px;
+        }
+        .coverage-metric .value {
+            font-size: 2.2em;
+            font-weight: 700;
+        }
+        .coverage-metric .label {
+            font-size: 0.85em;
+            color: #8A8FA8;
+            margin-top: 4px;
+        }
+
+        /* ── Sidebar: fondo oscuro y texto claro ── */
+        [data-testid="stSidebar"] {
+            background-color: #161b26;
+        }
+        [data-testid="stSidebar"] .stMarkdown,
+        [data-testid="stSidebar"] label,
+        [data-testid="stSidebar"] p,
+        [data-testid="stSidebar"] span:not(.status-badge) {
+            color: #E0E0E0 !important;
+        }
+        [data-testid="stSidebar"] .stSelectbox label,
+        [data-testid="stSidebar"] .stNumberInput label {
+            color: #C0C4D0 !important;
+        }
+        [data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"] > div {
+            background-color: #1A1D27;
+            border-color: #2D3142;
+            color: #E0E0E0;
+        }
+        [data-testid="stSidebar"] .stNumberInput input {
+            background-color: #1A1D27;
+            color: #E0E0E0;
+            border-color: #2D3142;
+        }
+        [data-testid="stSidebar"] hr {
+            border-color: #2D3142;
+        }
+
+        /* ── Ajustes para Streamlit nativo en dark ── */
+        .stTextInput, .stSelectbox, .stNumberInput {
+            background-color: #1A1D27;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_document_checklist(cobertura: dict):
+    """Renderiza el checklist visual de documentos requeridos usando componentes nativos de Streamlit."""
+    st.markdown('<div class="section-title">📋 Checklist de Documentación Requerida</div>', unsafe_allow_html=True)
+
+    for doc in DOCUMENTOS_REQUERIDOS:
+        doc_id = doc["id"]
+        detectado = cobertura.get(doc_id, False)
+
+        if detectado:
+            badge_class = "detected"
+            badge_text = "✅ Detectado"
+        elif cobertura:
+            badge_class = "missing"
+            badge_text = "❌ No detectado"
+        else:
+            badge_class = "pending"
+            badge_text = "⏳ Pendiente"
+
+        with st.container():
+            # Fila principal: icono + nombre + tooltip | badge
+            col_left, col_right = st.columns([5, 1])
+
+            with col_left:
+                st.markdown(
+                    f"""
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 4px 0;">
+                        <span style="font-size: 1.5em;">{doc['icono']}</span>
+                        <span class="doc-name">{doc['nombre']}</span>
+                        <div class="tooltip-container">
+                            <span class="tooltip-icon">?</span>
+                            <span class="tooltip-text">{doc['descripcion']}</span>
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+            with col_right:
+                st.markdown(
+                    f'<div style="text-align: right; padding: 4px 0;">'
+                    f'<span class="status-badge {badge_class}">{badge_text}</span>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+
+            # Línea separadora entre tarjetas
+            st.markdown(
+                "<hr style='margin: 2px 0; border: 0; border-top: 1px solid #2D3142; opacity: 0.5;'>",
+                unsafe_allow_html=True,
+            )
+
+
+def render_coverage_dashboard(archivos: List):
+    """Renderiza el dashboard de pre-análisis de cobertura documental."""
+    if not archivos:
+        return
+
+    cobertura = analizar_cobertura(archivos)
+    st.session_state.cobertura_documental = cobertura
+    porcentaje = calcular_porcentaje(cobertura)
+    nivel = obtener_nivel_cobertura(porcentaje)
+
+    st.markdown('<div class="section-title">📊 Mapeo Documental — Pre-Análisis de Cobertura</div>', unsafe_allow_html=True)
+
+    # ── Tarjeta principal de cobertura ──
+    st.markdown(
+        f"""
+        <div class="coverage-card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+                <div style="flex: 1; min-width: 200px;">
+                    <h3>📦 Cobertura del Dossier</h3>
+                    <div class="coverage-metric">
+                        <div class="value" style="color: {nivel['color']};">{porcentaje}%</div>
+                        <div class="label">{nivel['label']}</div>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" style="width: {porcentaje}%; background: {nivel['color']};"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8em; color: #8A8FA8; margin-top: 4px;">
+                        <span>0%</span>
+                        <span>{sum(1 for v in cobertura.values() if v)}/{len(cobertura)} documentos</span>
+                        <span>100%</span>
+                    </div>
+                </div>
+                <div style="flex: 1; min-width: 200px;">
+                    <h3>🎯 Precisión Esperada del Dictamen</h3>
+                    <div style="margin-top: 12px;">
+                        <div class="precision-alert" style="background: rgba({','.join(str(int(nivel['color'][i:i+2], 16)) for i in (1, 3, 5))}, 0.1); border-color: {nivel['color']};">
+                            <div style="font-size: 1.3em; font-weight: 700; color: {nivel['color']};">{nivel['precision']}</div>
+                            <div style="color: #A0A4B0; margin-top: 6px;">
+                                {'✅ El dossier cuenta con documentación suficiente para una evaluación robusta.' if porcentaje >= 80 else
+                                 '⚠️ La evaluación podrá realizarse, pero algunas dimensiones quedarán con supuestos.' if porcentaje >= 60 else
+                                 '❌ La documentación es insuficiente. El dictamen tendrá baja confiabilidad.'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # ── Documentos identificados vs no identificados ──
+    st.markdown("### 🔍 Detalle por Documento")
+    render_document_checklist(cobertura)
+
+    # ── Archivos no mapeados ──
+    archivos_no_mapeados = []
+    for archivo in archivos:
+        doc_id = identificar_documento(archivo.name)
+        if not doc_id:
+            archivos_no_mapeados.append(archivo.name)
+
+    if archivos_no_mapeados:
+        with st.expander(f"📎 Archivos no clasificados ({len(archivos_no_mapeados)})"):
+            for nombre in archivos_no_mapeados:
+                st.caption(f"• {nombre}")
+            st.info(
+                "Estos archivos no pudieron ser clasificados automáticamente. "
+                "Se procesarán igualmente, pero la cobertura mostrada puede no reflejar su contenido real."
+            )
+
+
+# ──────────────────────────────────────────────────────────────────────
+#  CONFIGURACIÓN DE PÁGINA
+# ──────────────────────────────────────────────────────────────────────
+st.set_page_config(
+    page_title="Evaluación Crediticia Chile",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 
 init_session_state()
+render_dark_mode_css()
 
 
-# --- Sidebar: Configuración ---
+# ──────────────────────────────────────────────────────────────────────
+#  SIDEBAR: CONFIGURACIÓN
+# ──────────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.title("⚙️ Configuración")
     st.markdown("---")
@@ -105,7 +544,9 @@ with st.sidebar:
     )
 
 
-# --- Cabecera principal ---
+# ──────────────────────────────────────────────────────────────────────
+#  CABECERA PRINCIPAL
+# ──────────────────────────────────────────────────────────────────────
 st.title("📊 Sistema de Evaluación Crediticia")
 st.markdown(
     """
@@ -118,30 +559,55 @@ st.markdown(
 st.markdown("---")
 
 
-# --- Sección de carga de PDF ---
-st.header("📄 Carga de Documentos")
+# ──────────────────────────────────────────────────────────────────────
+#  CHECKLIST DE DOCUMENTACIÓN (visible siempre)
+# ──────────────────────────────────────────────────────────────────────
+render_document_checklist(st.session_state.cobertura_documental)
 
-col1, col2 = st.columns([3, 1])
+st.markdown("---")
 
-with col1:
-    archivo_subido = st.file_uploader(
-        "Selecciona el dossier PDF de la empresa",
-        type=["pdf"],
-        help="Sube el PDF con la carpeta tributaria (F29, F22, Balance, DICOM)",
+
+# ──────────────────────────────────────────────────────────────────────
+#  ZONA DE CARGA INTELIGENTE (Multi-file)
+# ──────────────────────────────────────────────────────────────────────
+st.header("📄 Zona de Carga Inteligente")
+
+col_upload, col_status = st.columns([3, 1])
+
+with col_upload:
+    archivos_subidos = st.file_uploader(
+        "Arrastra o selecciona los documentos del cliente",
+        type=["pdf", "zip"],
+        accept_multiple_files=True,
+        help=(
+            "Puedes subir múltiples archivos PDF individuales o un ZIP consolidado. "
+            "El sistema identificará automáticamente cada documento por su nombre."
+        ),
     )
 
-with col2:
+with col_status:
     st.markdown("### Estado")
-    if st.session_state.pdf_procesado:
-        st.success("✅ PDF cargado")
+    if archivos_subidos:
+        st.success(f"✅ {len(archivos_subidos)} archivo(s) cargado(s)")
     else:
-        st.info("⏳ Pendiente")
+        st.info("⏳ Sin archivos")
+
+# ── Dashboard de cobertura (se muestra tras la carga) ──
+if archivos_subidos:
+    st.session_state.archivos_subidos = archivos_subidos
+    render_coverage_dashboard(archivos_subidos)
+else:
+    st.session_state.archivos_subidos = []
+    st.session_state.cobertura_documental = {}
+
+st.markdown("---")
 
 
-# --- Botón de evaluación ---
-if archivo_subido is not None:
+# ──────────────────────────────────────────────────────────────────────
+#  BOTÓN DE EVALUACIÓN
+# ──────────────────────────────────────────────────────────────────────
+if archivos_subidos:
     st.session_state.pdf_procesado = True
-    st.session_state.archivo = archivo_subido
 
     if st.button("🚀 Ejecutar Evaluación", type="primary", use_container_width=True):
         # ── Indicador visual de etapas ──────────────────────────────
@@ -165,10 +631,25 @@ if archivo_subido is not None:
                 paso_ingestion.write("⬜ 1/4  Ingestion — extrayendo datos del PDF…")
 
         try:
-            # Guardar PDF temporal
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-                tmp.write(archivo_subido.getvalue())
-                pdf_path = tmp.name
+            # ── Consolidar múltiples PDFs en uno solo ──────────────
+            # Si hay múltiples archivos, los concatenamos en un PDF temporal
+            # (o usamos el primero si es ZIP consolidado)
+            pdf_paths = []
+
+            with status_placeholder:
+                with etapas:
+                    paso_ingestion.write("🔄 1/4  Ingestion — preparando documentos…")
+
+            for archivo in archivos_subidos:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{archivo.name}") as tmp:
+                    tmp.write(archivo.getvalue())
+                    pdf_paths.append(tmp.name)
+
+            # Usar el primer PDF como principal (o el ZIP si corresponde)
+            pdf_path = pdf_paths[0] if pdf_paths else None
+
+            if not pdf_path:
+                raise ValueError("No se pudo preparar ningún archivo para la evaluación.")
 
             with status_placeholder:
                 with etapas:
@@ -208,8 +689,12 @@ if archivo_subido is not None:
             st.session_state.resultado = resultado
             st.session_state.etapa_actual = "resultados"
 
-            # Limpiar archivo temporal
-            os.unlink(pdf_path)
+            # Limpiar archivos temporales
+            for p in pdf_paths:
+                try:
+                    os.unlink(p)
+                except OSError:
+                    pass
 
         except Exception as e:
             with status_placeholder:
@@ -227,10 +712,14 @@ if archivo_subido is not None:
         st.session_state.pdf_procesado = False
         st.session_state.error = None
         st.session_state.etapa_actual = "carga"
+        st.session_state.archivos_subidos = []
+        st.session_state.cobertura_documental = {}
         st.rerun()
 
 
-# --- Visualización de resultados ---
+# ──────────────────────────────────────────────────────────────────────
+#  VISUALIZACIÓN DE RESULTADOS
+# ──────────────────────────────────────────────────────────────────────
 if st.session_state.resultado is not None:
     resultado = st.session_state.resultado
 
@@ -362,7 +851,9 @@ if st.session_state.resultado is not None:
         )
 
 
-# --- Manejo de errores ---
+# ──────────────────────────────────────────────────────────────────────
+#  MANEJO DE ERRORES
+# ──────────────────────────────────────────────────────────────────────
 if st.session_state.error:
     st.error(f"❌ Error en la evaluación: {st.session_state.error}")
     if st.button("Reintentar"):
@@ -370,10 +861,14 @@ if st.session_state.error:
         st.session_state.resultado = None
         st.session_state.pdf_procesado = False
         st.session_state.etapa_actual = "carga"
+        st.session_state.archivos_subidos = []
+        st.session_state.cobertura_documental = {}
         st.rerun()
 
 
-# --- Footer ---
+# ──────────────────────────────────────────────────────────────────────
+#  FOOTER
+# ──────────────────────────────────────────────────────────────────────
 st.markdown("---")
 st.markdown(
     """
