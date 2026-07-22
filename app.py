@@ -7,6 +7,7 @@ Conecta la interfaz de usuario con el grafo LangGraph
 import json
 import os
 import tempfile
+import textwrap
 from typing import Optional, List
 
 import streamlit as st
@@ -197,9 +198,10 @@ def render_header_banner():
 def render_producto_info_card(producto: str):
     """Renderiza tarjeta visual dinámica con SVG inline y resumen de parámetros CMF."""
     import streamlit as st
+    import textwrap
 
     if producto == "factoring":
-        svg_ilustracion = """
+        svg_ilustracion = textwrap.dedent("""\
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160" width="240" height="160">
             <defs>
                 <linearGradient id="factGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -235,8 +237,8 @@ def render_producto_info_card(producto: str):
             <circle cx="230" cy="82" r="2.5" fill="#0099FF"/>
             <text x="120" y="148" text-anchor="middle" fill="#00C9B7" font-size="8" font-family="monospace">LIQUIDEZ · FLUJO DE CAJA</text>
         </svg>
-        """
-        parametros_cmf = """
+        """)
+        parametros_cmf = textwrap.dedent("""\
         <div style="margin-top: 10px; font-size: 0.85em; line-height: 1.6; color: #C0C8E0;">
             <div style="color: #00C9B7; font-weight: 600; margin-bottom: 6px;">📌 Parámetros CMF priorizados para <strong>Factoring</strong>:</div>
             <ul style="margin: 0; padding-left: 18px;">
@@ -250,9 +252,9 @@ def render_producto_info_card(producto: str):
                 ⚡ Evaluación centrada en liquidez, morosidad histórica y calidad de la cartera cedible.
             </div>
         </div>
-        """
+        """)
     else:  # leasing
-        svg_ilustracion = """
+        svg_ilustracion = textwrap.dedent("""\
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160" width="240" height="160">
             <defs>
                 <linearGradient id="leaseGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -287,8 +289,8 @@ def render_producto_info_card(producto: str):
             <rect x="150" y="118" width="10" height="14" rx="1" fill="#FF8C42" opacity="0.3"/>
             <text x="120" y="148" text-anchor="middle" fill="#FF8C42" font-size="8" font-family="monospace">ACTIVOS FIJOS · MAQUINARIA · VEHÍCULOS</text>
         </svg>
-        """
-        parametros_cmf = """
+        """)
+        parametros_cmf = textwrap.dedent("""\
         <div style="margin-top: 10px; font-size: 0.85em; line-height: 1.6; color: #C0C8E0;">
             <div style="color: #FF8C42; font-weight: 600; margin-bottom: 6px;">📌 Parámetros CMF priorizados para <strong>Leasing</strong>:</div>
             <ul style="margin: 0; padding-left: 18px;">
@@ -302,11 +304,11 @@ def render_producto_info_card(producto: str):
                 ⚡ Evaluación centrada en generación de flujo, solvencia patrimonial y capacidad de pago recurrente.
             </div>
         </div>
-        """
+        """)
 
     # Tarjeta combinada
-    st.markdown(
-        f"""
+    html_content = textwrap.dedent(
+        f"""\
         <div style="
             background: linear-gradient(135deg, #111827 0%, #1A1F35 100%);
             border: 1px solid #2A3050;
@@ -324,9 +326,9 @@ def render_producto_info_card(producto: str):
                 </div>
             </div>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
+    st.markdown(html_content, unsafe_allow_html=True)
 
 
 def render_dark_mode_css():
