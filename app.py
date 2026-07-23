@@ -7,10 +7,10 @@ Conecta la interfaz de usuario con el grafo LangGraph
 import json
 import os
 import tempfile
-import textwrap
 from typing import Optional, List
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 from src.models.schemas import (
     PoliticasEvaluacion,
@@ -197,11 +197,8 @@ def render_header_banner():
 
 def render_producto_info_card(producto: str):
     """Renderiza tarjeta visual dinámica con SVG inline y resumen de parámetros CMF."""
-    import streamlit as st
-    import textwrap
-
     if producto == "factoring":
-        svg_ilustracion = textwrap.dedent("""\
+        svg_ilustracion = """\
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160" width="240" height="160">
             <defs>
                 <linearGradient id="factGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -236,9 +233,8 @@ def render_producto_info_card(producto: str):
             <circle cx="230" cy="45" r="3" fill="#00C9B7"/>
             <circle cx="230" cy="82" r="2.5" fill="#0099FF"/>
             <text x="120" y="148" text-anchor="middle" fill="#00C9B7" font-size="8" font-family="monospace">LIQUIDEZ · FLUJO DE CAJA</text>
-        </svg>
-        """)
-        parametros_cmf = textwrap.dedent("""\
+        </svg>"""
+        parametros_cmf = """\
         <div style="margin-top: 10px; font-size: 0.85em; line-height: 1.6; color: #C0C8E0;">
             <div style="color: #00C9B7; font-weight: 600; margin-bottom: 6px;">📌 Parámetros CMF priorizados para <strong>Factoring</strong>:</div>
             <ul style="margin: 0; padding-left: 18px;">
@@ -251,10 +247,9 @@ def render_producto_info_card(producto: str):
             <div style="margin-top: 8px; padding: 6px 10px; background: rgba(0,201,183,0.08); border-radius: 6px; border-left: 3px solid #00C9B7;">
                 ⚡ Evaluación centrada en liquidez, morosidad histórica y calidad de la cartera cedible.
             </div>
-        </div>
-        """)
+        </div>"""
     else:  # leasing
-        svg_ilustracion = textwrap.dedent("""\
+        svg_ilustracion = """\
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160" width="240" height="160">
             <defs>
                 <linearGradient id="leaseGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -288,9 +283,8 @@ def render_producto_info_card(producto: str):
             <rect x="130" y="118" width="10" height="14" rx="1" fill="#FF8C42" opacity="0.3"/>
             <rect x="150" y="118" width="10" height="14" rx="1" fill="#FF8C42" opacity="0.3"/>
             <text x="120" y="148" text-anchor="middle" fill="#FF8C42" font-size="8" font-family="monospace">ACTIVOS FIJOS · MAQUINARIA · VEHÍCULOS</text>
-        </svg>
-        """)
-        parametros_cmf = textwrap.dedent("""\
+        </svg>"""
+        parametros_cmf = """\
         <div style="margin-top: 10px; font-size: 0.85em; line-height: 1.6; color: #C0C8E0;">
             <div style="color: #FF8C42; font-weight: 600; margin-bottom: 6px;">📌 Parámetros CMF priorizados para <strong>Leasing</strong>:</div>
             <ul style="margin: 0; padding-left: 18px;">
@@ -303,12 +297,10 @@ def render_producto_info_card(producto: str):
             <div style="margin-top: 8px; padding: 6px 10px; background: rgba(255,140,66,0.08); border-radius: 6px; border-left: 3px solid #FF8C42;">
                 ⚡ Evaluación centrada en generación de flujo, solvencia patrimonial y capacidad de pago recurrente.
             </div>
-        </div>
-        """)
+        </div>"""
 
-    # Tarjeta combinada
-    html_content = textwrap.dedent(
-        f"""\
+    # Tarjeta combinada - HTML completamente inline
+    html_content = f"""\
         <div style="
             background: linear-gradient(135deg, #111827 0%, #1A1F35 100%);
             border: 1px solid #2A3050;
@@ -325,10 +317,8 @@ def render_producto_info_card(producto: str):
                     {parametros_cmf}
                 </div>
             </div>
-        </div>
-        """
-    )
-    st.markdown(html_content, unsafe_allow_html=True)
+        </div>"""
+    components.html(html_content, height=350)
 
 
 def render_dark_mode_css():
@@ -945,34 +935,58 @@ with st.sidebar:
 #  CABECERA PRINCIPAL
 # ──────────────────────────────────────────────────────────────────────
 
-# Banner corporativo
-st.markdown(
-    f"""
-    <div class="corp-banner">
-        <div>
-            <div class="banner-tag">
-                <span class="dot"></span>
-                PRO — ENTERPRISE CREDIT EVALUATION
+# Banner corporativo con avatar
+col_texto, col_avatar = st.columns([3, 1])
+
+with col_texto:
+    st.markdown(
+        f"""
+        <div class="corp-banner">
+            <div>
+                <div class="banner-tag">
+                    <span class="dot"></span>
+                    PRO — ENTERPRISE CREDIT EVALUATION
+                </div>
+                <div class="banner-title" style="margin-top: 8px;">
+                    📊 Sistema de Evaluación Crediticia
+                </div>
+                <div class="banner-sub">
+                    Multiagente · Chile · CMF Compliance
+                </div>
             </div>
-            <div class="banner-title" style="margin-top: 8px;">
-                📊 Sistema de Evaluación Crediticia
-            </div>
-            <div class="banner-sub">
-                Multiagente · Chile · CMF Compliance
+            <div style="text-align: right; position: relative; z-index: 1;">
+                <div style="font-size: 2em; font-weight: 700; color: #60A5FA; line-height: 1;">
+                    {producto_seleccionado.upper()}
+                </div>
+                <div style="font-size: 0.75em; color: #8A8FA8; letter-spacing: 2px; text-transform: uppercase;">
+                    Producto Activo
+                </div>
             </div>
         </div>
-        <div style="text-align: right; position: relative; z-index: 1;">
-            <div style="font-size: 2em; font-weight: 700; color: #60A5FA; line-height: 1;">
-                {producto_seleccionado.upper()}
-            </div>
-            <div style="font-size: 0.75em; color: #8A8FA8; letter-spacing: 2px; text-transform: uppercase;">
-                Producto Activo
-            </div>
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+        """,
+        unsafe_allow_html=True,
+    )
+
+with col_avatar:
+    try:
+        st.image("assets/agente.png", width='stretch')
+    except FileNotFoundError:
+        pass
+    st.markdown(
+        """
+        <style>
+        [data-testid="column"]:nth-child(2) img {
+            border-radius: 16px;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3), 0 0 60px rgba(59, 130, 246, 0.1);
+            transition: box-shadow 0.3s ease;
+        }
+        [data-testid="column"]:nth-child(2) img:hover {
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.5), 0 0 80px rgba(59, 130, 246, 0.2);
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
 st.markdown(
     """
